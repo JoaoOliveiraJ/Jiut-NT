@@ -1,0 +1,20 @@
+[package]
+name = "blog_os"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bootloader_api = "0.11.12"
+lazy_static = { version = "1.5.0", features = ["spin_no_std"] }
+spin = "0.9.8"
+font8x8 = { version = "0.3.1", default-features = false }
+uart_16550 = "0.3.2"
+x86_64 = "0.15.2"
+pic8259 = "0.10.4"
+pc-keyboard = "0.7.0"
+
+[features]
+df_test = []
+
+[workspace]
+members = ["xtask"]
