@@ -12,9 +12,18 @@ uart_16550 = "0.3.2"
 x86_64 = "0.15.2"
 pic8259 = "0.10.4"
 pc-keyboard = "0.7.0"
+raw-cpuid = "10.7.0"
 
 [features]
 df_test = []
+apic = []
 
 [workspace]
 members = ["xtask"]
+exclude = ["target/_imgtool"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

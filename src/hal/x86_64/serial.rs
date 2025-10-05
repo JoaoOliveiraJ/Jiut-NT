@@ -19,7 +19,7 @@ pub fn _serial_print(args: core::fmt::Arguments) {
 #[macro_export]
 macro_rules! serial_print {
     ($($arg:tt)*) => {
-        $crate::serial::_serial_print(core::format_args!($($arg)*));
+        $crate::hal::x86_64::serial::_serial_print(core::format_args!($($arg)*));
     }
 }
 
@@ -28,4 +28,3 @@ macro_rules! serial_println {
     () => ($crate::serial_print!("\r\n"));
     ($($arg:tt)*) => ($crate::serial_print!("{}\r\n", core::format_args!($($arg)*)));
 }
-

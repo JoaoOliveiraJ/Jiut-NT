@@ -1,2 +1,3 @@
-[target.'cfg(target_os = "none")']
-runner = "cargo run --quiet --target x86_64-pc-windows-msvc -p xtask -- runner --bios --gui"
+## Host toolchain defaults unchanged; kernel target is passed explicitly by scripts/xtask
+
+## Optional: configure a runner for bare-metal tests if needed

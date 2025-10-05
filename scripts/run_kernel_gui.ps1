@@ -8,7 +8,8 @@ $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
     $profile = if ($Release) { '--release' } else { '' }
-    Write-Host "Building kernel image ($([string]::IsNullOrWhiteSpace($profile) ? 'debug' : 'release'))..."
+    $label = if ([string]::IsNullOrWhiteSpace($profile)) { 'debug' } else { 'release' }
+    Write-Host "Building kernel image ($label)..."
     if ($UEFI) {
         & "$env:USERPROFILE\.cargo\bin\cargo.exe" run --target x86_64-pc-windows-msvc -p xtask -- build $profile 2>&1 | Write-Host
         $img = Join-Path $root 'target\uefi.img'
@@ -24,4 +25,3 @@ try {
 finally {
     Pop-Location
 }
-

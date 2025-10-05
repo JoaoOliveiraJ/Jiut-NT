@@ -1,0 +1,80 @@
+﻿//! APIC (LAPIC/IOAPIC) â€“ migraÃ§Ã£o do PIC 8259 para IOAPIC + LAPIC.
+//!
+//! Objetivo: abandonar o 8259 e usar IOAPIC (remapeia GSIs) e LAPIC (timer, EOI, spurious).
+//! Notas:
+//! - EndereÃ§os padrÃ£o em PC compatÃ­vel/QEMU: LAPIC 0xFEE0_0000, IOAPIC 0xFEC0_0000 (pode variar).
+//! - Precisamos mapear as pÃ¡ginas MMIO (futuro: MM) e habilitar LAPIC via MSR 0x1B.
+//! - Rotas IOAPIC: escrever em IOREGSEL/IOWIN para programar pinos (redirection table).
+//! - Este mÃ³dulo Ã© um esqueleto; chamadas ainda nÃ£o sÃ£o feitas no boot padrÃ£o.
+
+use core::ptr::{read_volatile, write_volatile};
+use core::sync::atomic::{AtomicU64, Ordering};
+
+const LAPIC_BASE_DEFAULT: u64 = 0xFEE0_0000;
+const IOAPIC_BASE_DEFAULT: u64 = 0xFEC0_0000;
+
+// LAPIC registers offsets
+const LAPIC_ID: u32 = 0x20; // Local APIC ID Register
+const LAPIC_EOI: u32 = 0xB0;
+const LAPIC_SVR: u32 = 0xF0;
+const LAPIC_LVT_TIMER: u32 = 0x320;
+const LAPIC_TIMER_INITIAL: u32 = 0x380;
+const LAPIC_TIMER_CURRENT: u32 = 0x390;
+const LAPIC_TIMER_DIV: u32 = 0x3E0;
+
+// IOAPIC registers
+const IOAPIC_IOREGSEL: u32 = 0x00;
+const IOAPIC_IOWIN: u32 = 0x10;
+
+// Spurious interrupt vector (ex.: 0xFF) â€“ apenas exemplo, definir polÃ­tica depois
+const SPURIOUS_VECTOR: u8 = 0xFF;
+
+pub struct Lapic {
+    base: *mut u32,
+}
+
+pub struct IoApic {
+    base: *mut u32,
+}
+
+unsafe fn mmio32(addr: u64) -> *mut u32 {
+    addr as *mut u32
+}
+
+impl Lapic {
+    pub unsafe fn new(base: u64) -> Self {
+        Self { base: mmio32(base) }
+    }
+
+    unsafe fn write(&self, offset: u32, value: u32) {
+        let reg = self.base.add((offset / 4) as usize);
+        write_volatile(reg, value);
+    }
+
+    unsafe fn read(&self, offset: u32) -> u32 {
+        let reg = self.base.add((offset / 4) as usize);
+        read_volatile(reg)
+    }
+
+    pub unsafe fn eoi(&self) {
+        self.write(LAPIC_EOI, 0);
+    }
+
+    pub unsafe fn enable(&self) {
+        // habilita LAPIC e define spurious vector
+        self.write(LAPIC_SVR, (SPURIOUS_VECTOR as u32) | (1 << 8));
+    }
+
+    pub unsafe fn apic_id(&self) -> u8 {
+        ((self.read(LAPIC_ID) >> 24) & 0xFF) as u8
+    }
+
+    /// Programa o timer do LAPIC em modo periÃ³dico com um valor inicial
+    /// ObservaÃ§Ã£o: sem calibraÃ§Ã£o, o perÃ­odo Ã© arbitrÃ¡rio mas suficiente para validar IRQs.
+    pub unsafe fn timer_periodic(&self, vector: u8, initial: u32) {
+        // Divide por 16 (cÃ³digo 0x3 -> 16, consulte documentaÃ§Ã£o xAPIC)
+        self.write(LAPIC_TIMER_DIV, 0x3);
+        // LVT Timer: bit 17 = periodic
+        let lvt = (vector as u32) | (1 << 17);
+        self.write(LAPIC_LVT_TIMER, lvt);
+        // Carga inicial

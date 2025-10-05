@@ -2,7 +2,7 @@ use bootloader_api::info::{FrameBuffer, FrameBufferInfo};
 use lazy_static::lazy_static;
 use spin::Mutex;
 
-use crate::fb_text;
+use crate::drivers::video::fb_text;
 
 lazy_static! {
     static ref CONSOLE: Mutex<Option<FbConsole>> = Mutex::new(None);
@@ -88,4 +88,3 @@ pub fn log_char(c: char) {
         console.write_char(c);
     }
 }
-

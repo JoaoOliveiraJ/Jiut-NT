@@ -106,6 +106,7 @@ dependencies = [
  "lazy_static",
  "pc-keyboard",
  "pic8259",
+ "raw-cpuid",
  "spin",
  "uart_16550",
  "x86_64 0.15.2",

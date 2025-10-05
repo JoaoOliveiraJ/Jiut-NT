@@ -38,13 +38,11 @@ fn main() -> Result<()> {
 }
 
 fn project_root() -> Result<PathBuf> {
-    let exe = std::env::current_exe()?;
-    let mut p = exe.parent().context("no exe parent")?;
-    // xtask/target/debug/xtask -> xtask/target/debug -> xtask/target -> xtask -> blog_os
-    for _ in 0..3 {
-        p = p.parent().context("invalid path structure")?;
+    let mut p = std::env::current_dir()?;
+    loop {
+        if p.join("Cargo.toml").exists() { return Ok(p); }
+        if !p.pop() { bail!("Cargo.toml not found from current dir") }
     }
-    Ok(p.to_path_buf())
 }
 
 fn build_kernel(release: bool) -> Result<PathBuf> {
@@ -52,17 +50,20 @@ fn build_kernel(release: bool) -> Result<PathBuf> {
     let mut cmd = Command::new(cargo());
     cmd.current_dir(&root);
     cmd.env("RUSTFLAGS", "-Z unstable-options -C panic=immediate-abort");
+    cmd.arg("+nightly");
     cmd.arg("build");
     // Build kernel package explicitly for our custom target using build-std
     cmd.args([
         "-Z",
-        "build-std=core,compiler_builtins",
+        "build-std=core,alloc,compiler_builtins",
         "-Z",
         "build-std-features=compiler-builtins-mem",
         "--target",
         "x86_64-blog_os.json",
         "-p",
         "blog_os",
+        "--features",
+        "apic",
     ]);
     if release {
         cmd.arg("--release");
